@@ -71,6 +71,19 @@ int main(int argc, char *argv[]) {
         fprintf(arquivoSaida, "\nExecutando DFS com pilha a partir do vértice 1:\n");
         dfsComPilhaArvore(grafo, 0, visitadosDFS, arvoreDFS, paisDFS, niveisDFS, arquivoSaida);
 
+        // Exemplo de teste para a função calcularDistancia
+        // Substitua os valores de origem e destino pelos vértices que deseja testar
+        int origem = 8852;   // Vértice inicial (índice começando em 0)
+        int destino = 459;  // Vértice destino (índice começando em 0)
+
+        int distancia = calcularDistancia(grafo, origem-1, destino-1);
+
+        if (distancia != -1) {
+            printf("A distância entre os vértices %d e %d é: %d\n", origem, destino, distancia);
+        } else {
+            printf("Não existe caminho entre os vértices %d e %d.\n", origem, destino);
+        }
+
         // Free allocated memory for DFS
         free(visitadosDFS);
         free(paisDFS);

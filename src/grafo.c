@@ -345,4 +345,62 @@ void bfsComFilaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *a
     liberarFila(fila);
 }
 
+// Função para calcular a distância mínima entre dois vértices usando BFS
+int calcularDistancia(Grafo *grafo, int origem, int destino) {
+    if (origem < 0 || origem >= grafo->numVertices || destino < 0 || destino >= grafo->numVertices) {
+        printf("Vértices inválidos.\n");
+        return -1;
+    }
 
+    int *visitados = (int *)calloc(grafo->numVertices, sizeof(int));
+    int *distancias = (int *)malloc(grafo->numVertices * sizeof(int));
+    for (int i = 0; i < grafo->numVertices; i++) {
+        distancias[i] = -1; // Inicializa todas as distâncias como -1 (não alcançado)
+    }
+
+    Fila *fila = criarFila(grafo->numVertices);
+    enqueue(fila, origem);
+    visitados[origem] = 1;
+    distancias[origem] = 0;
+
+    while (!estaVaziaFila(fila)) {
+        int verticeAtual = dequeue(fila);
+
+        // Se encontramos o destino, podemos retornar a distância
+        if (verticeAtual == destino) {
+            int distancia = distancias[destino];
+            liberarFila(fila);
+            free(visitados);
+            free(distancias);
+            return distancia;
+        }
+
+        // Explora os vértices adjacentes
+        if (grafo->tipo == MATRIZ_ADJACENCIA) {
+            for (int j = 0; j < grafo->numVertices; j++) {
+                if (grafo->grafoMatriz->matriz[verticeAtual][j] == 1 && !visitados[j]) {
+                    visitados[j] = 1;
+                    distancias[j] = distancias[verticeAtual] + 1;
+                    enqueue(fila, j);
+                }
+            }
+        } else if (grafo->tipo == LISTA_ADJACENCIA) {
+            No *atual = grafo->grafoLista->listaAdj[verticeAtual];
+            while (atual != NULL) {
+                int v = atual->vertice;
+                if (!visitados[v]) {
+                    visitados[v] = 1;
+                    distancias[v] = distancias[verticeAtual] + 1;
+                    enqueue(fila, v);
+                }
+                atual = atual->prox;
+            }
+        }
+    }
+
+    // Se o destino não foi alcançado, os vértices não estão conectados
+    liberarFila(fila);
+    free(visitados);
+    free(distancias);
+    return -1; // Indica que não há caminho entre origem e destino
+}
