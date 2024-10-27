@@ -67,7 +67,10 @@ void liberarFila(Fila *fila);
 void dfsComPilhaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *arvoreDFS, int *pais, int *niveis, FILE *arquivoSaida);
 void bfsComFilaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *arvoreBFS, int *pais, int *niveis, FILE *arquivoSaida);
 
-// Função para calcular a distância entre dois vértices
+// Nova função para calcular a distância entre dois vértices
 int calcularDistancia(Grafo *grafo, int origem, int destino);
+
+// **Nova função para descobrir as componentes conexas**
+void descobrirComponentes(Grafo *grafo, int *componentes, int *numComponentes);
 
 #endif // GRAFO_H

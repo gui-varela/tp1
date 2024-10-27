@@ -303,26 +303,28 @@ void bfsComFilaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *a
     Fila *fila = criarFila(grafo->numVertices);
     enqueue(fila, verticeInicial);
     visitados[verticeInicial] = 1;
-    pais[verticeInicial] = verticeInicial; // The parent of the initial vertex is itself
+    pais[verticeInicial] = verticeInicial; // O pai do vértice inicial é ele mesmo
     niveis[verticeInicial] = 0;
 
     while (!estaVaziaFila(fila)) {
         int verticeAtual = dequeue(fila);
 
-        // Write to the output file
-        fprintf(arquivoSaida, "Vértice: %d, Pai: %d, Nível: %d\n", verticeAtual + 1, pais[verticeAtual] + 1, niveis[verticeAtual]);
+        // Escreve no arquivo de saída se ele não for NULL
+        if (arquivoSaida != NULL) {
+            fprintf(arquivoSaida, "Vértice: %d, Pai: %d, Nível: %d\n", verticeAtual + 1, pais[verticeAtual] + 1, niveis[verticeAtual]);
+        }
 
-        // Add edge to the BFS tree graph, if not the initial vertex
-        if (verticeAtual != verticeInicial) {
+        // Adiciona aresta à árvore BFS se não for o vértice inicial e se arvoreBFS não for NULL
+        if (verticeAtual != verticeInicial && arvoreBFS != NULL) {
             adicionarArestaGrafo(arvoreBFS, verticeAtual, pais[verticeAtual]);
         }
 
-        // Explore adjacent vertices
+        // Explora os vértices adjacentes
         if (grafo->tipo == MATRIZ_ADJACENCIA) {
             for (int j = 0; j < grafo->numVertices; j++) {
                 if (grafo->grafoMatriz->matriz[verticeAtual][j] == 1 && !visitados[j]) {
-                    visitados[j] = 1;  // Mark as visited
-                    enqueue(fila, j);   // Enqueue the adjacent vertex
+                    visitados[j] = 1;  // Marca como visitado
+                    enqueue(fila, j);   // Enfileira o vértice adjacente
                     pais[j] = verticeAtual;
                     niveis[j] = niveis[verticeAtual] + 1;
                 }
@@ -332,8 +334,8 @@ void bfsComFilaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *a
             while (atual != NULL) {
                 int v = atual->vertice;
                 if (!visitados[v]) {
-                    visitados[v] = 1;  // Mark as visited
-                    enqueue(fila, v);   // Enqueue the adjacent vertex
+                    visitados[v] = 1;  // Marca como visitado
+                    enqueue(fila, v);   // Enfileira o vértice adjacente
                     pais[v] = verticeAtual;
                     niveis[v] = niveis[verticeAtual] + 1;
                 }
@@ -343,6 +345,38 @@ void bfsComFilaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *a
     }
 
     liberarFila(fila);
+}
+
+void descobrirComponentes(Grafo *grafo, int *componentes, int *numComponentes) {
+    int *visitados = (int *)calloc(grafo->numVertices, sizeof(int));
+    int *pais = (int *)malloc(grafo->numVertices * sizeof(int));
+    int *niveis = (int *)malloc(grafo->numVertices * sizeof(int));
+    *numComponentes = 0;
+
+    for (int v = 0; v < grafo->numVertices; v++) {
+        if (!visitados[v]) {
+            (*numComponentes)++;
+            // Inicializa os arrays 'pais' e 'niveis' para esta BFS
+            for (int i = 0; i < grafo->numVertices; i++) {
+                pais[i] = -1;
+                niveis[i] = -1;
+            }
+
+            // Chama a BFS a partir do vértice 'v' sem gerar saída e sem construir a árvore BFS
+            bfsComFilaArvore(grafo, v, visitados, NULL, pais, niveis, NULL);
+
+            // Após a BFS, todos os vértices visitados pertencem à mesma componente
+            for (int u = 0; u < grafo->numVertices; u++) {
+                if (visitados[u] && componentes[u] == 0 && (pais[u] != -1 || u == v)) {
+                    componentes[u] = *numComponentes;
+                }
+            }
+        }
+    }
+
+    free(visitados);
+    free(pais);
+    free(niveis);
 }
 
 // Função para calcular a distância mínima entre dois vértices usando BFS

@@ -3,116 +3,327 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Declaração das funções auxiliares
+TipoRepresentacao obterTipoRepresentacao(const char *arg);
+char *gerarNomeBaseArquivo(const char *nomeArquivoEntrada, const char *tipoRepresentacao);
+Grafo *carregarGrafo(const char *nomeArquivoEntrada, TipoRepresentacao tipo);
+void escreverEstatisticasGrafo(Grafo *grafo, const char *baseNomeArquivo);
+void executarDFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao tipo);
+void executarBFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao tipo);
+void descobrirComponentesConexas(Grafo *grafo, const char *baseNomeArquivo);
+void calcularDistanciaVerticesInterativo(Grafo *grafo);
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         printf("Uso: %s <nome do arquivo> <tipo de representação (matriz ou lista)>\n", argv[0]);
         return 1;
     }
 
-    // Determine the representation type
-    TipoRepresentacao tipo;
-    if (strcmp(argv[2], "matriz") == 0) {
-        tipo = MATRIZ_ADJACENCIA;
-    } else if (strcmp(argv[2], "lista") == 0) {
-        tipo = LISTA_ADJACENCIA;
-    } else {
+    // Obtém o tipo de representação
+    TipoRepresentacao tipo = obterTipoRepresentacao(argv[2]);
+    if (tipo == -1) {
         printf("Tipo de representação inválido. Use 'matriz' ou 'lista'.\n");
         return 1;
     }
 
-    // Open the file to read the number of vertices
-    FILE *arquivo = fopen(argv[1], "r");
-    if (!arquivo) {
-        printf("Erro ao abrir o arquivo.\n");
+    // Carrega o grafo a partir do arquivo
+    Grafo *grafo = carregarGrafo(argv[1], tipo);
+    if (!grafo) {
+        printf("Erro ao carregar o grafo.\n");
         return 1;
+    }
+
+    // Gera o nome base do arquivo de saída
+    char *baseNomeArquivo = gerarNomeBaseArquivo(argv[1], argv[2]);
+    if (!baseNomeArquivo) {
+        printf("Erro ao gerar o nome base do arquivo.\n");
+        liberarGrafo(grafo);
+        return 1;
+    }
+
+    // Menu de opções
+    int opcao;
+    do {
+        printf("\nSelecione uma opção:\n");
+        printf("1. Obter informações do grafo\n");
+        printf("2. Executar BFS\n");
+        printf("3. Executar DFS\n");
+        printf("4. Gerar componentes\n");
+        printf("5. Calcular distância\n");
+        printf("0. Sair\n");
+        printf("Opção: ");
+        scanf("%d", &opcao);
+
+        switch (opcao) {
+            case 1:
+                // Obter informações do grafo
+                escreverEstatisticasGrafo(grafo, baseNomeArquivo);
+                break;
+            case 2:
+                // Executar BFS
+                executarBFS(grafo, baseNomeArquivo, tipo);
+                break;
+            case 3:
+                // Executar DFS
+                executarDFS(grafo, baseNomeArquivo, tipo);
+                break;
+            case 4:
+                // Gerar componentes
+                descobrirComponentesConexas(grafo, baseNomeArquivo);
+                break;
+            case 5:
+                // Calcular distância
+                calcularDistanciaVerticesInterativo(grafo);
+                break;
+            case 0:
+                // Sair
+                printf("Encerrando o programa.\n");
+                break;
+            default:
+                printf("Opção inválida. Tente novamente.\n");
+                break;
+        }
+    } while (opcao != 0);
+
+    // Libera recursos
+    liberarGrafo(grafo);
+    free(baseNomeArquivo);
+
+    return 0;
+}
+
+// Implementações das funções auxiliares
+
+TipoRepresentacao obterTipoRepresentacao(const char *arg) {
+    if (strcmp(arg, "matriz") == 0) {
+        return MATRIZ_ADJACENCIA;
+    } else if (strcmp(arg, "lista") == 0) {
+        return LISTA_ADJACENCIA;
+    } else {
+        return -1; // Tipo inválido
+    }
+}
+
+char *gerarNomeBaseArquivo(const char *nomeArquivoEntrada, const char *tipoRepresentacao) {
+    // Remove a extensão do nome do arquivo de entrada
+    char baseNomeArquivo[256];
+    strncpy(baseNomeArquivo, nomeArquivoEntrada, sizeof(baseNomeArquivo) - 1);
+    baseNomeArquivo[sizeof(baseNomeArquivo) - 1] = '\0'; // Garante terminação nula
+
+    // Remove a extensão
+    char *ponto = strrchr(baseNomeArquivo, '.');
+    if (ponto != NULL) {
+        *ponto = '\0'; // Remove a extensão
+    }
+
+    // Calcula o tamanho necessário para o resultado
+    size_t tamanhoBase = strlen(baseNomeArquivo);
+    size_t tamanhoTipo = strlen(tipoRepresentacao);
+    size_t tamanhoTotal = tamanhoBase + 1 + tamanhoTipo + 1; // +1 para '-', +1 para '\0'
+
+    // Aloca memória para o resultado
+    char *resultado = (char *)malloc(tamanhoTotal * sizeof(char));
+    if (!resultado) {
+        return NULL;
+    }
+
+    // Constrói o nome base do arquivo
+    snprintf(resultado, tamanhoTotal, "%s-%s", baseNomeArquivo, tipoRepresentacao);
+
+    return resultado;
+}
+
+Grafo *carregarGrafo(const char *nomeArquivoEntrada, TipoRepresentacao tipo) {
+    FILE *arquivo = fopen(nomeArquivoEntrada, "r");
+    if (!arquivo) {
+        printf("Erro ao abrir o arquivo %s.\n", nomeArquivoEntrada);
+        return NULL;
     }
 
     int numVertices;
     if (fscanf(arquivo, "%d", &numVertices) != 1) {
         printf("Erro ao ler o número de vértices.\n");
         fclose(arquivo);
-        return 1;
+        return NULL;
     }
     fclose(arquivo);
 
-    // Create the graph with the number of vertices read
     Grafo *grafo = criarGrafo(numVertices, tipo);
-
     if (grafo) {
-        // Read the edges from the file and populate the graph
-        lerArestas(grafo, argv[1]);
+        lerArestas(grafo, nomeArquivoEntrada);
+    }
+    return grafo;
+}
 
-        // Create the output file name by appending "_out"
-        char nomeArquivoSaida[256];
-        snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-%s_out", argv[1], argv[2]);
+void escreverEstatisticasGrafo(Grafo *grafo, const char *baseNomeArquivo) {
+    // Gera o nome do arquivo de saída
+    char nomeArquivoSaida[256];
+    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-infos.txt", baseNomeArquivo);
 
-        // Open the output file to write the results
-        FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
-        if (!arquivoSaida) {
-            printf("Erro ao criar o arquivo de saída.\n");
-            liberarGrafo(grafo);
-            return 1;
-        }
-
-        // Calculate graph statistics and write to the output file
-        EstatisticasGrafo *stats = calcularEstatisticasGrafo(grafo);
-        fprintf(arquivoSaida, "Número de arestas: %d\n", stats->numArestas);
-        fprintf(arquivoSaida, "Grau mínimo: %d\n", stats->grauMinimo);
-        fprintf(arquivoSaida, "Grau máximo: %d\n", stats->grauMaximo);
-        fprintf(arquivoSaida, "Grau médio: %.2f\n", stats->grauMedio);
-        fprintf(arquivoSaida, "Mediana do grau: %d\n", stats->medianaGrau);
-
-        // Execute DFS and write the result to the output file
-        int *visitadosDFS = (int *)calloc(numVertices, sizeof(int));
-        int *paisDFS = (int *)malloc(numVertices * sizeof(int));
-        int *niveisDFS = (int *)malloc(numVertices * sizeof(int));
-        Grafo *arvoreDFS = criarGrafoVazio(numVertices, tipo);
-
-        fprintf(arquivoSaida, "\nExecutando DFS com pilha a partir do vértice 1:\n");
-        dfsComPilhaArvore(grafo, 0, visitadosDFS, arvoreDFS, paisDFS, niveisDFS, arquivoSaida);
-
-        // Exemplo de teste para a função calcularDistancia
-        // Substitua os valores de origem e destino pelos vértices que deseja testar
-        int origem = 8852;   // Vértice inicial (índice começando em 0)
-        int destino = 459;  // Vértice destino (índice começando em 0)
-
-        int distancia = calcularDistancia(grafo, origem-1, destino-1);
-
-        if (distancia != -1) {
-            printf("A distância entre os vértices %d e %d é: %d\n", origem, destino, distancia);
-        } else {
-            printf("Não existe caminho entre os vértices %d e %d.\n", origem, destino);
-        }
-
-        // Free allocated memory for DFS
-        free(visitadosDFS);
-        free(paisDFS);
-        free(niveisDFS);
-        liberarGrafo(arvoreDFS);
-
-        // Execute BFS and write the result to the output file
-        int *visitadosBFS = (int *)calloc(numVertices, sizeof(int));
-        int *paisBFS = (int *)malloc(numVertices * sizeof(int));
-        int *niveisBFS = (int *)malloc(numVertices * sizeof(int));
-        Grafo *arvoreBFS = criarGrafoVazio(numVertices, tipo);
-
-        fprintf(arquivoSaida, "\nExecutando BFS a partir do vértice 1:\n");
-        bfsComFilaArvore(grafo, 0, visitadosBFS, arvoreBFS, paisBFS, niveisBFS, arquivoSaida);
-
-        // Free allocated memory for BFS
-        free(visitadosBFS);
-        free(paisBFS);
-        free(niveisBFS);
-        liberarGrafo(arvoreBFS);
-
-        // Free allocated memory and close the output file
-        liberarGrafo(grafo);
-        free(stats);
-        fclose(arquivoSaida);
-    } else {
-        printf("Erro ao carregar o grafo.\n");
-        return 1;
+    FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
+    if (!arquivoSaida) {
+        printf("Erro ao criar o arquivo %s.\n", nomeArquivoSaida);
+        return;
     }
 
-    return 0;
+    EstatisticasGrafo *stats = calcularEstatisticasGrafo(grafo);
+    fprintf(arquivoSaida, "Número de arestas: %d\n", stats->numArestas);
+    fprintf(arquivoSaida, "Grau mínimo: %d\n", stats->grauMinimo);
+    fprintf(arquivoSaida, "Grau máximo: %d\n", stats->grauMaximo);
+    fprintf(arquivoSaida, "Grau médio: %.2f\n", stats->grauMedio);
+    fprintf(arquivoSaida, "Mediana do grau: %d\n", stats->medianaGrau);
+    free(stats);
+
+    fclose(arquivoSaida);
+
+    printf("Informações do grafo escritas no arquivo %s.\n", nomeArquivoSaida);
+}
+
+void executarDFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao tipo) {
+    // Gera o nome do arquivo de saída
+    char nomeArquivoSaida[256];
+    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-DFS.txt", baseNomeArquivo);
+
+    FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
+    if (!arquivoSaida) {
+        printf("Erro ao criar o arquivo %s.\n", nomeArquivoSaida);
+        return;
+    }
+
+    int numVertices = grafo->numVertices;
+    int *visitadosDFS = (int *)calloc(numVertices, sizeof(int));
+    int *paisDFS = (int *)malloc(numVertices * sizeof(int));
+    int *niveisDFS = (int *)malloc(numVertices * sizeof(int));
+    Grafo *arvoreDFS = criarGrafoVazio(numVertices, tipo);
+
+    fprintf(arquivoSaida, "Executando DFS com pilha a partir do vértice 1:\n");
+    dfsComPilhaArvore(grafo, 0, visitadosDFS, arvoreDFS, paisDFS, niveisDFS, arquivoSaida);
+
+    // Libera a memória alocada para DFS
+    free(visitadosDFS);
+    free(paisDFS);
+    free(niveisDFS);
+    liberarGrafo(arvoreDFS);
+
+    fclose(arquivoSaida);
+
+    printf("Resultado da DFS escrito no arquivo %s.\n", nomeArquivoSaida);
+}
+
+void executarBFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao tipo) {
+    // Gera o nome do arquivo de saída
+    char nomeArquivoSaida[256];
+    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-BFS.txt", baseNomeArquivo);
+
+    FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
+    if (!arquivoSaida) {
+        printf("Erro ao criar o arquivo %s.\n", nomeArquivoSaida);
+        return;
+    }
+
+    int numVertices = grafo->numVertices;
+    int *visitadosBFS = (int *)calloc(numVertices, sizeof(int));
+    int *paisBFS = (int *)malloc(numVertices * sizeof(int));
+    int *niveisBFS = (int *)malloc(numVertices * sizeof(int));
+    Grafo *arvoreBFS = criarGrafoVazio(numVertices, tipo);
+
+    fprintf(arquivoSaida, "Executando BFS a partir do vértice 1:\n");
+    bfsComFilaArvore(grafo, 0, visitadosBFS, arvoreBFS, paisBFS, niveisBFS, arquivoSaida);
+
+    // Libera a memória alocada para BFS
+    free(visitadosBFS);
+    free(paisBFS);
+    free(niveisBFS);
+    liberarGrafo(arvoreBFS);
+
+    fclose(arquivoSaida);
+
+    printf("Resultado da BFS escrita no arquivo %s.\n", nomeArquivoSaida);
+}
+
+void descobrirComponentesConexas(Grafo *grafo, const char *baseNomeArquivo) {
+    // Gera o nome do arquivo de saída
+    char nomeArquivoSaida[256];
+    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-componentes.txt", baseNomeArquivo);
+
+    FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
+    if (!arquivoSaida) {
+        printf("Erro ao criar o arquivo %s.\n", nomeArquivoSaida);
+        return;
+    }
+
+    int numVertices = grafo->numVertices;
+    int *componentes = (int *)calloc(numVertices, sizeof(int));
+    int numComponentes = 0;
+    descobrirComponentes(grafo, componentes, &numComponentes);
+
+    // Criar listas para armazenar os vértices de cada componente
+    int **listaComponentes = (int **)malloc((numComponentes + 1) * sizeof(int *));
+    int *tamanhoComponentes = (int *)calloc((numComponentes + 1), sizeof(int));
+
+    // Contar quantos vértices há em cada componente
+    for (int i = 0; i < numVertices; i++) {
+        int compID = componentes[i];
+        tamanhoComponentes[compID]++;
+    }
+
+    // Alocar espaço para armazenar os vértices de cada componente
+    for (int i = 1; i <= numComponentes; i++) {
+        listaComponentes[i] = (int *)malloc(tamanhoComponentes[i] * sizeof(int));
+        tamanhoComponentes[i] = 0; // Reiniciar para usar como índice ao adicionar os vértices
+    }
+
+    // Preencher as listas com os vértices de cada componente
+    for (int i = 0; i < numVertices; i++) {
+        int compID = componentes[i];
+        listaComponentes[compID][tamanhoComponentes[compID]] = i;
+        tamanhoComponentes[compID]++;
+    }
+
+    // Escrever as componentes no arquivo de saída
+    fprintf(arquivoSaida, "Número de componentes conexas: %d\n", numComponentes);
+    for (int i = 1; i <= numComponentes; i++) {
+        fprintf(arquivoSaida, "\nComponente %d: ", i);
+        for (int j = 0; j < tamanhoComponentes[i]; j++) {
+            fprintf(arquivoSaida, "%d ", listaComponentes[i][j] + 1); // +1 para notação 1-based
+        }
+        fprintf(arquivoSaida, "\n");
+    }
+
+    // Liberar a memória alocada para componentes
+    for (int i = 1; i <= numComponentes; i++) {
+        free(listaComponentes[i]);
+    }
+    free(listaComponentes);
+    free(tamanhoComponentes);
+    free(componentes);
+
+    fclose(arquivoSaida);
+
+    printf("Componentes conexas escritas no arquivo %s.\n", nomeArquivoSaida);
+}
+
+void calcularDistanciaVerticesInterativo(Grafo *grafo) {
+    int origem, destino;
+    printf("Digite o número do vértice de origem: ");
+    scanf("%d", &origem);
+    printf("Digite o número do vértice de destino: ");
+    scanf("%d", &destino);
+
+    // Ajusta os índices para começar em 0
+    origem -= 1;
+    destino -= 1;
+
+    if (origem < 0 || origem >= grafo->numVertices || destino < 0 || destino >= grafo->numVertices) {
+        printf("Vértices inválidos. Por favor, insira valores entre 1 e %d.\n", grafo->numVertices);
+        return;
+    }
+
+    int distancia = calcularDistancia(grafo, origem, destino);
+
+    if (distancia != -1) {
+        printf("A distância entre os vértices %d e %d é: %d\n", origem + 1, destino + 1, distancia);
+    } else {
+        printf("Não existe caminho entre os vértices %d e %d.\n", origem + 1, destino + 1);
+    }
 }
