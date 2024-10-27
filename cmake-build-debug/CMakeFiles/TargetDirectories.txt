@@ -1,0 +1,3 @@
+/home/guilherme/Documentos/ufrj/2024-1/teoria-dos-grafos/tp1/cmake-build-debug/CMakeFiles/untitled.dir
+/home/guilherme/Documentos/ufrj/2024-1/teoria-dos-grafos/tp1/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/guilherme/Documentos/ufrj/2024-1/teoria-dos-grafos/tp1/cmake-build-debug/CMakeFiles/rebuild_cache.dir

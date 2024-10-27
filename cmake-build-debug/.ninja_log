@@ -1,0 +1,6 @@
+# ninja log v6
+1	37	1729905536410003774	CMakeFiles/untitled.dir/main.c.o	5aa1fa47195bc4a3
+37	58	1729905536446004032	untitled	b4d833ca98e3ae6d
+2	32	1729905536411003780	CMakeFiles/untitled.dir/src/grafo_matriz.c.o	9f9163b641385d3
+2	33	1729905536411003780	CMakeFiles/untitled.dir/src/grafo_lista.c.o	9fe1541a954cfcd8
+2	34	1729905536411003780	CMakeFiles/untitled.dir/src/grafo.c.o	78e1ad86652d5cc1
