@@ -131,7 +131,15 @@ int compararInteiros(const void *a, const void *b) {
 // Cria uma pilha com capacidade específica
 Pilha *criarPilha(int capacidade) {
     Pilha *pilha = (Pilha *)malloc(sizeof(Pilha));
+    if (!pilha) {
+        fprintf(stderr, "Erro ao alocar memória para a pilha\n");
+        exit(EXIT_FAILURE);
+    }
     pilha->dados = (int *)malloc(capacidade * sizeof(int));
+    if (!pilha->dados) {
+        fprintf(stderr, "Erro ao alocar memória para os dados da pilha\n");
+        exit(EXIT_FAILURE);
+    }
     pilha->topo = -1;
     pilha->capacidade = capacidade;
     return pilha;
@@ -140,16 +148,23 @@ Pilha *criarPilha(int capacidade) {
 // Empilha um valor na pilha
 void push(Pilha *pilha, int valor) {
     if (pilha->topo < pilha->capacidade - 1) {
-        pilha->dados[++pilha->topo] = valor;
+        pilha->dados[++(pilha->topo)] = valor;
+    } else {
+        // Pilha cheia - redimensionar ou tratar o erro
+        fprintf(stderr, "Erro: Pilha cheia ao tentar empilhar %d\n", valor);
+        exit(EXIT_FAILURE);
     }
 }
 
 // Desempilha um valor da pilha
 int pop(Pilha *pilha) {
     if (pilha->topo >= 0) {
-        return pilha->dados[pilha->topo--];
+        return pilha->dados[(pilha->topo)--];
+    } else {
+        // Tratamento de erro: pilha vazia
+        fprintf(stderr, "Erro: Tentativa de desempilhar de uma pilha vazia\n");
+        exit(EXIT_FAILURE);
     }
-    return -1; // Indica que a pilha está vazia
 }
 
 // Verifica se a pilha está vazia
@@ -191,47 +206,50 @@ void adicionarArestaGrafo(Grafo *grafo, int u, int v) {
 }
 
 // Função principal para DFS com pilha que constrói a árvore DFS
-void dfsComPilhaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *arvoreDFS, int *pais, int *niveis, FILE *arquivoSaida) {
+void dfsComPilhaArvore(Grafo *grafo, int verticeInicial, int *visitados,
+                       Grafo *arvoreDFS, int *pais, int *niveis, FILE *arquivoSaida) {
     Pilha *pilha = criarPilha(grafo->numVertices);
     push(pilha, verticeInicial);
+    visitados[verticeInicial] = 1;  // Marca como visitado no momento em que é empilhado
 
-    pais[verticeInicial] = verticeInicial; // O pai do vértice inicial é ele mesmo
+    pais[verticeInicial] = verticeInicial;
     niveis[verticeInicial] = 0;
 
     while (!estaVaziaPilha(pilha)) {
         int verticeAtual = pop(pilha);
 
-        if (!visitados[verticeAtual]) {
-            visitados[verticeAtual] = 1;
+        // Escreve no arquivo de saída se ele não for NULL
+        if (arquivoSaida != NULL) {
+            fprintf(arquivoSaida, "Vértice: %d, Pai: %d, Nível: %d\n",
+                    verticeAtual + 1, pais[verticeAtual] + 1, niveis[verticeAtual]);
+        }
 
-            // Imprime no arquivo de saída
-            fprintf(arquivoSaida, "Vértice: %d, Pai: %d, Nível: %d\n", verticeAtual + 1, pais[verticeAtual] + 1, niveis[verticeAtual]);
+        // Adiciona aresta ao grafo árvore, se não for o vértice inicial e arvoreDFS não for NULL
+        if (verticeAtual != verticeInicial && arvoreDFS != NULL) {
+            adicionarArestaGrafo(arvoreDFS, verticeAtual, pais[verticeAtual]);
+        }
 
-            // Adiciona aresta ao grafo árvore, se não for o vértice inicial
-            if (verticeAtual != verticeInicial) {
-                adicionarArestaGrafo(arvoreDFS, verticeAtual, pais[verticeAtual]);
+        // Explora os vértices adjacentes
+        if (grafo->tipo == MATRIZ_ADJACENCIA) {
+            for (int j = grafo->numVertices - 1; j >= 0; j--) {
+                if (grafo->grafoMatriz->matriz[verticeAtual][j] == 1 && !visitados[j]) {
+                    push(pilha, j);
+                    visitados[j] = 1;
+                    pais[j] = verticeAtual;
+                    niveis[j] = niveis[verticeAtual] + 1;
+                }
             }
-
-            // Explora os vértices adjacentes
-            if (grafo->tipo == MATRIZ_ADJACENCIA) {
-                for (int j = grafo->numVertices - 1; j >= 0; j--) {
-                    if (grafo->grafoMatriz->matriz[verticeAtual][j] == 1 && !visitados[j]) {
-                        push(pilha, j);
-                        pais[j] = verticeAtual;
-                        niveis[j] = niveis[verticeAtual] + 1;
-                    }
+        } else if (grafo->tipo == LISTA_ADJACENCIA) {
+            No *atual = grafo->grafoLista->listaAdj[verticeAtual];
+            while (atual != NULL) {
+                int v = atual->vertice;
+                if (!visitados[v]) {
+                    push(pilha, v);
+                    visitados[v] = 1;  // Marca como visitado ao empilhar
+                    pais[v] = verticeAtual;
+                    niveis[v] = niveis[verticeAtual] + 1;
                 }
-            } else if (grafo->tipo == LISTA_ADJACENCIA) {
-                No *atual = grafo->grafoLista->listaAdj[verticeAtual];
-                while (atual != NULL) {
-                    int v = atual->vertice;
-                    if (!visitados[v]) {
-                        push(pilha, v);
-                        pais[v] = verticeAtual;
-                        niveis[v] = niveis[verticeAtual] + 1;
-                    }
-                    atual = atual->prox;
-                }
+                atual = atual->prox;
             }
         }
     }

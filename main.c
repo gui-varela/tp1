@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <time.h>
 
 // Declaração das funções auxiliares
 TipoRepresentacao obterTipoRepresentacao(const char *arg);
@@ -12,6 +14,8 @@ void executarDFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao ti
 void executarBFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao tipo);
 void descobrirComponentesConexas(Grafo *grafo, const char *baseNomeArquivo);
 void calcularDistanciaVerticesInterativo(Grafo *grafo);
+void executarEstudoCasoBFS(Grafo *grafo);
+void executarEstudoCasoDFS(Grafo *grafo);
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -33,6 +37,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    int pid = getpid();
+    printf("Grafo carregado. Pressione Enter para continuar... (PID: %d)", pid);
+    getchar(); // Espera o usuário pressionar Enter
+
     // Gera o nome base do arquivo de saída
     char *baseNomeArquivo = gerarNomeBaseArquivo(argv[1], argv[2]);
     if (!baseNomeArquivo) {
@@ -50,6 +58,8 @@ int main(int argc, char *argv[]) {
         printf("3. Executar DFS\n");
         printf("4. Gerar componentes\n");
         printf("5. Calcular distância\n");
+        printf("6. Estudo de caso 2 (100 BFS)\n");  // Nova opção
+        printf("7. Estudo de caso 3 (100 DFS)\n");  // Nova opção
         printf("0. Sair\n");
         printf("Opção: ");
         scanf("%d", &opcao);
@@ -74,6 +84,14 @@ int main(int argc, char *argv[]) {
             case 5:
                 // Calcular distância
                 calcularDistanciaVerticesInterativo(grafo);
+                break;
+            case 6:
+                // Estudo de caso 2: 100 BFS
+                executarEstudoCasoBFS(grafo);
+                break;
+            case 7:
+                // Estudo de caso 3: 100 DFS
+                executarEstudoCasoDFS(grafo);
                 break;
             case 0:
                 // Sair
@@ -196,8 +214,12 @@ void executarDFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao ti
     int *niveisDFS = (int *)malloc(numVertices * sizeof(int));
     Grafo *arvoreDFS = criarGrafoVazio(numVertices, tipo);
 
+    int verticeInicial;
+    printf("Vértice inicial: ");
+    scanf("%d", &verticeInicial);
+
     fprintf(arquivoSaida, "Executando DFS com pilha a partir do vértice 1:\n");
-    dfsComPilhaArvore(grafo, 0, visitadosDFS, arvoreDFS, paisDFS, niveisDFS, arquivoSaida);
+    dfsComPilhaArvore(grafo, verticeInicial-1, visitadosDFS, arvoreDFS, paisDFS, niveisDFS, arquivoSaida);
 
     // Libera a memória alocada para DFS
     free(visitadosDFS);
@@ -227,8 +249,12 @@ void executarBFS(Grafo *grafo, const char *baseNomeArquivo, TipoRepresentacao ti
     int *niveisBFS = (int *)malloc(numVertices * sizeof(int));
     Grafo *arvoreBFS = criarGrafoVazio(numVertices, tipo);
 
-    fprintf(arquivoSaida, "Executando BFS a partir do vértice 1:\n");
-    bfsComFilaArvore(grafo, 0, visitadosBFS, arvoreBFS, paisBFS, niveisBFS, arquivoSaida);
+    int verticeInicial;
+    printf("Vértice inicial: ");
+    scanf("%d", &verticeInicial);
+
+    fprintf(arquivoSaida, "Executando BFS a partir do vértice %d:\n", verticeInicial);
+    bfsComFilaArvore(grafo, verticeInicial-1, visitadosBFS, arvoreBFS, paisBFS, niveisBFS, arquivoSaida);
 
     // Libera a memória alocada para BFS
     free(visitadosBFS);
@@ -326,4 +352,82 @@ void calcularDistanciaVerticesInterativo(Grafo *grafo) {
     } else {
         printf("Não existe caminho entre os vértices %d e %d.\n", origem + 1, destino + 1);
     }
+}
+
+void executarEstudoCasoBFS(Grafo *grafo) {
+    int numVertices = grafo->numVertices;
+    int numExecucoes = 100;
+    double tempoTotal = 0.0;
+
+    // Semente para números aleatórios
+    srand(time(NULL));
+
+    for (int i = 0; i < numExecucoes; i++) {
+        int verticeInicial = rand() % numVertices;
+
+        // Inicializa arrays necessários
+        int *visitadosBFS = (int *)calloc(numVertices, sizeof(int));
+        int *paisBFS = (int *)malloc(numVertices * sizeof(int));
+        int *niveisBFS = (int *)malloc(numVertices * sizeof(int));
+
+        // Medir o tempo de execução
+        clock_t inicio = clock();
+
+        // Executa BFS sem escrever em arquivo
+        bfsComFilaArvore(grafo, verticeInicial, visitadosBFS, NULL, paisBFS, niveisBFS, NULL);
+
+        clock_t fim = clock();
+        double tempoExecucao = (((double)(fim - inicio)) / CLOCKS_PER_SEC) * 1000;
+        tempoTotal += tempoExecucao;
+
+        // Libera a memória alocada para BFS
+        free(visitadosBFS);
+        free(paisBFS);
+        free(niveisBFS);
+    }
+
+    double tempoMedio = tempoTotal / numExecucoes;
+    printf("Tempo médio de execução do BFS: %.6f ms\n", tempoMedio);
+}
+
+void executarEstudoCasoDFS(Grafo *grafo) {
+    int numVertices = grafo->numVertices;
+    int numExecucoes = 100;
+    double tempoTotal = 0.0;
+
+    // Semente para números aleatórios
+    srand(time(NULL));
+
+    for (int i = 0; i < numExecucoes; i++) {
+        int verticeInicial = rand() % numVertices;
+
+        // Inicializa arrays necessários
+        int *visitadosDFS = (int *)calloc(numVertices, sizeof(int));
+        int *paisDFS = (int *)malloc(numVertices * sizeof(int));
+        int *niveisDFS = (int *)malloc(numVertices * sizeof(int));
+
+        // Inicializa os arrays paisDFS e niveisDFS
+        for (int j = 0; j < numVertices; j++) {
+            paisDFS[j] = -1;
+            niveisDFS[j] = -1;
+        }
+
+        // Medir o tempo de execução
+        clock_t inicio = clock();
+
+        // Executa DFS sem escrever em arquivo
+        dfsComPilhaArvore(grafo, verticeInicial, visitadosDFS, NULL, paisDFS, niveisDFS, NULL);
+
+        clock_t fim = clock();
+        double tempoExecucao = (((double)(fim - inicio)) / CLOCKS_PER_SEC) * 1000;
+        tempoTotal += tempoExecucao;
+
+        // Libera a memória alocada para DFS
+        free(visitadosDFS);
+        free(paisDFS);
+        free(niveisDFS);
+    }
+
+    double tempoMedio = tempoTotal / numExecucoes;
+    printf("Tempo médio de execução do DFS: %.6f ms\n", tempoMedio);
 }
