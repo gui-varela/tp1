@@ -30,7 +30,8 @@ void lerArestas(Grafo *grafo, const char *nomeArquivo) {
     fscanf(arquivo, "%d", &numVertices);  // Ignora o número de vértices, já foi lido
 
     int u, v;
-    while (fscanf(arquivo, "%d %d", &u, &v) != EOF) {
+    double peso;
+    while (fscanf(arquivo, "%d %d %lf", &u, &v, &peso) == 3) { // garantir a leitura dos 3 itens em cada linha (par de vertices e o peso da aresta)
         // Verifica se os índices dos vértices são válidos
         if (u <= 0 || u > grafo->numVertices || v <= 0 || v > grafo->numVertices) {
             printf("Vértice inválido: %d ou %d\n", u, v);
@@ -39,18 +40,9 @@ void lerArestas(Grafo *grafo, const char *nomeArquivo) {
 
         // Adiciona aresta na matriz de adjacência ou lista de adjacência
         if (grafo->tipo == MATRIZ_ADJACENCIA) {
-            grafo->grafoMatriz->matriz[u - 1][v - 1] = 1;
-            grafo->grafoMatriz->matriz[v - 1][u - 1] = 1;
+            adicionarArestaMatriz(grafo->grafoMatriz, u - 1, v - 1, peso);
         } else if (grafo->tipo == LISTA_ADJACENCIA) {
-            No *novoNoU = (No *)malloc(sizeof(No));
-            novoNoU->vertice = v - 1;
-            novoNoU->prox = grafo->grafoLista->listaAdj[u - 1];
-            grafo->grafoLista->listaAdj[u - 1] = novoNoU;
-
-            No *novoNoV = (No *)malloc(sizeof(No));
-            novoNoV->vertice = u - 1;
-            novoNoV->prox = grafo->grafoLista->listaAdj[v - 1];
-            grafo->grafoLista->listaAdj[v - 1] = novoNoV;
+            adicionarArestaLista(grafo->grafoLista, u - 1, v - 1, peso);
         }
     }
 
@@ -196,11 +188,11 @@ Grafo *criarGrafoVazio(int numVertices, TipoRepresentacao tipo) {
 }
 
 // Função para adicionar uma aresta ao grafo (usada para construir a árvore DFS)
-void adicionarArestaGrafo(Grafo *grafo, int u, int v) {
+void adicionarArestaGrafo(Grafo *grafo, int u, int v, double peso) {
     if (grafo->tipo == MATRIZ_ADJACENCIA) {
-        adicionarArestaMatriz(grafo->grafoMatriz, u, v);
+        adicionarArestaMatriz(grafo->grafoMatriz, u, v, peso);
     } else if (grafo->tipo == LISTA_ADJACENCIA) {
-        adicionarArestaLista(grafo->grafoLista, u, v);
+        adicionarArestaLista(grafo->grafoLista, u, v, peso);
     }
     grafo->numArestas++;
 }
@@ -226,7 +218,7 @@ void dfsComPilhaArvore(Grafo *grafo, int verticeInicial, int *visitados,
 
         // Adiciona aresta ao grafo árvore, se não for o vértice inicial e arvoreDFS não for NULL
         if (verticeAtual != verticeInicial && arvoreDFS != NULL) {
-            adicionarArestaGrafo(arvoreDFS, verticeAtual, pais[verticeAtual]);
+            adicionarArestaGrafo(arvoreDFS, verticeAtual, pais[verticeAtual], 1.0); //adicionei peso 1 pq na dfs nao importa o peso
         }
 
         // Explora os vértices adjacentes
@@ -334,7 +326,7 @@ void bfsComFilaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *a
 
         // Adiciona aresta à árvore BFS se não for o vértice inicial e se arvoreBFS não for NULL
         if (verticeAtual != verticeInicial && arvoreBFS != NULL) {
-            adicionarArestaGrafo(arvoreBFS, verticeAtual, pais[verticeAtual]);
+            adicionarArestaGrafo(arvoreBFS, verticeAtual, pais[verticeAtual], 1.0); //adicionei peso 1 pq na bfs nao importa o peso
         }
 
         // Explora os vértices adjacentes

@@ -44,7 +44,7 @@ Grafo *criarGrafoVazio(int numVertices, TipoRepresentacao tipo);
 void liberarGrafo(Grafo *grafo);
 EstatisticasGrafo *calcularEstatisticasGrafo(Grafo *grafo);
 void lerArestas(Grafo *grafo, const char *nomeArquivo);
-void adicionarArestaGrafo(Grafo *grafo, int u, int v);
+void adicionarArestaGrafo(Grafo *grafo, int u, int v, double peso);
 
 // Funções auxiliares
 int compararInteiros(const void *p, const void *arg);

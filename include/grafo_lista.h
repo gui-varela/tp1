@@ -3,6 +3,7 @@
 
 typedef struct No {
     int vertice;
+    double peso; // novo campo pro peso
     struct No *prox;
 } No;
 
@@ -14,6 +15,6 @@ typedef struct {
 // Funções para manipulação do grafo com lista de adjacência
 GrafoLista *criarGrafoLista(int numVertices);
 void liberarGrafoLista(GrafoLista *grafoLista);
-void adicionarArestaLista(GrafoLista *grafoLista, int u, int v); // Novo
+void adicionarArestaLista(GrafoLista *grafoLista, int u, int v, double peso); 
 
 #endif // GRAFO_LISTA_H

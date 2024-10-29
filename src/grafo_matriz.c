@@ -4,9 +4,9 @@
 GrafoMatriz *criarGrafoMatriz(int numVertices) {
     GrafoMatriz *grafo = (GrafoMatriz *)malloc(sizeof(GrafoMatriz));
     grafo->numVertices = numVertices;
-    grafo->matriz = (int **)malloc(numVertices * sizeof(int *));
+    grafo->matriz = (double **)malloc(numVertices * sizeof(double *));
     for (int i = 0; i < numVertices; i++) {
-        grafo->matriz[i] = (int *)calloc(numVertices, sizeof(int));
+        grafo->matriz[i] = (double *)calloc(numVertices, sizeof(double));
     }
     return grafo;
 }
@@ -20,7 +20,7 @@ void liberarGrafoMatriz(GrafoMatriz *grafoMatriz) {
 }
 
 // Função para adicionar uma aresta na matriz de adjacência
-void adicionarArestaMatriz(GrafoMatriz *grafoMatriz, int u, int v) {
-    grafoMatriz->matriz[u][v] = 1;
-    grafoMatriz->matriz[v][u] = 1;
+void adicionarArestaMatriz(GrafoMatriz *grafoMatriz, int u, int v, double peso) {
+    grafoMatriz->matriz[u][v] = peso;
+    grafoMatriz->matriz[v][u] = peso;
 }
