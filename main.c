@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <float.h> 
 
 // Declaração das funções auxiliares
 TipoRepresentacao obterTipoRepresentacao(const char *arg);
@@ -16,7 +17,7 @@ void descobrirComponentesConexas(Grafo *grafo, const char *baseNomeArquivo);
 void calcularDistanciaVerticesInterativo(Grafo *grafo);
 void executarEstudoCasoBFS(Grafo *grafo);
 void executarEstudoCasoDFS(Grafo *grafo);
-void executarDijkstraVetor(Grafo *grafo);
+void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo);
 
 
 int main(int argc, char *argv[]) {
@@ -97,10 +98,9 @@ int main(int argc, char *argv[]) {
                 executarEstudoCasoDFS(grafo);
                 break;
             case 8:
-                executarDijkstraVetor(grafo);
+                executarEstudoCasoDijkstraVetor(grafo, baseNomeArquivo);
                 break;
             case 0:
-                // Sair
                 printf("Encerrando o programa.\n");
                 break;
             default:
@@ -460,22 +460,122 @@ int possuiPesosNegativos(Grafo *grafo) {
     return 0; // Retorna 0 se não tiver pesos negativos
 }
 
-void executarDijkstraVetor(Grafo *grafo) {
-    if (possuiPesosNegativos(grafo)) {
-        printf("O grafo possui pesos negativos. A biblioteca ainda não implementa caminhos mínimos para grafos com pesos negativos.\n");
+void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) {
+    int origem = 9; // Índice 9 corresponde ao vértice 10 (notação 1-based)
+    int destinos[] = {19, 29, 39, 49, 59}; // Índices para os vértices 20, 30, 40, 50, 60
+    int numDestinos = sizeof(destinos) / sizeof(destinos[0]);
+
+    // Gera o nome do arquivo de saída
+    char nomeArquivoSaida[256];
+    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso3_1.txt", baseNomeArquivo);
+
+    // Abre o arquivo de saída para escrever os resultados
+    FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
+    if (!arquivoSaida) {
+        printf("Erro ao criar o arquivo %s.\n", nomeArquivoSaida);
         return;
     }
 
-    int origem;
-    printf("Digite o número do vértice de origem: ");
-    scanf("%d", &origem);
-    origem -= 1;
+    fprintf(arquivoSaida, "Estudo de Caso 3.1: Distâncias e caminhos mínimos a partir do vértice 10\n\n");
+    fprintf(arquivoSaida, "Destino\tDistância\tCaminho Mínimo\n");
+    fprintf(arquivoSaida, "-------\t---------\t--------------\n");
 
-    if (origem < 0 || origem >= grafo->numVertices) {
-        printf("Vértice inválido. Por favor, insira um valor entre 1 e %d.\n", grafo->numVertices);
+    // Inicializa arrays necessários para o Dijkstra
+    int numVertices = grafo->numVertices;
+    double *distancia = (double *)malloc(numVertices * sizeof(double));
+    int *visitados = (int *)calloc(numVertices, sizeof(int));
+    int *pais = (int *)malloc(numVertices * sizeof(int));
+
+    if (!distancia || !visitados || !pais) {
+        printf("Erro ao alocar memória.\n");
+        free(distancia);
+        free(visitados);
+        free(pais);
+        fclose(arquivoSaida);
         return;
     }
 
-    // Chame a função de Dijkstra utilizando vetor aqui
-    dijkstraVetor(grafo, origem);
+    // Inicializa o array de distâncias com infinito e os pais com -1
+    for (int i = 0; i < numVertices; i++) {
+        distancia[i] = DBL_MAX;
+        pais[i] = -1;
+    }
+
+    distancia[origem] = 0.0;
+
+    // Implementação do algoritmo de Dijkstra
+    for (int i = 0; i < numVertices - 1; i++) {
+        double minDistancia = DBL_MAX;
+        int u = -1;
+
+        for (int v = 0; v < numVertices; v++) {
+            if (!visitados[v] && distancia[v] < minDistancia) {
+                minDistancia = distancia[v];
+                u = v;
+            }
+        }
+
+        if (u == -1) break; // Todos os vértices acessíveis foram processados
+
+        visitados[u] = 1;
+
+        if (grafo->tipo == MATRIZ_ADJACENCIA) {
+            for (int v = 0; v < numVertices; v++) {
+                if (grafo->grafoMatriz->matriz[u][v] > 0 && !visitados[v]) {
+                    double peso = grafo->grafoMatriz->matriz[u][v];
+                    if (distancia[u] + peso < distancia[v]) {
+                        distancia[v] = distancia[u] + peso;
+                        pais[v] = u;
+                    }
+                }
+            }
+        } else if (grafo->tipo == LISTA_ADJACENCIA) {
+            No *adjacente = grafo->grafoLista->listaAdj[u];
+            while (adjacente != NULL) {
+                int v = adjacente->vertice;
+                double peso = adjacente->peso;
+                if (!visitados[v] && distancia[u] + peso < distancia[v]) {
+                    distancia[v] = distancia[u] + peso;
+                    pais[v] = u;
+                }
+                adjacente = adjacente->prox;
+            }
+        }
+    }
+
+    // Para cada destino, imprimir a distância e o caminho mínimo
+    for (int i = 0; i < numDestinos; i++) {
+        int destino = destinos[i];
+
+        if (distancia[destino] == DBL_MAX) {
+            fprintf(arquivoSaida, "%d\tInfinito\tInacessível\n", destino + 1);
+        } else {
+            // Reconstrói o caminho mínimo
+            fprintf(arquivoSaida, "%d\t%.2f\t\t", destino + 1, distancia[destino]);
+            int caminho[numVertices];
+            int tamanhoCaminho = 0;
+            int atual = destino;
+
+            while (atual != -1) {
+                caminho[tamanhoCaminho++] = atual;
+                atual = pais[atual];
+            }
+
+            // Imprime o caminho na ordem correta
+            for (int j = tamanhoCaminho - 1; j >= 0; j--) {
+                fprintf(arquivoSaida, "%d", caminho[j] + 1);
+                if (j > 0) {
+                    fprintf(arquivoSaida, " -> ");
+                }
+            }
+            fprintf(arquivoSaida, "\n");
+        }
+    }
+
+    free(distancia);
+    free(visitados);
+    free(pais);
+    fclose(arquivoSaida);
+
+    printf("Resultado do estudo de caso 3.1 escrito no arquivo %s.\n", nomeArquivoSaida);
 }
