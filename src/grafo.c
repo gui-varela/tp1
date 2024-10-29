@@ -1,6 +1,8 @@
 #include "../include/grafo.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <float.h> // Para o valor de infinito DBL_MAX
+
 
 Grafo *criarGrafo(int numVertices, TipoRepresentacao tipo) {
     Grafo *grafo = (Grafo *)malloc(sizeof(Grafo));
@@ -447,4 +449,93 @@ int calcularDistancia(Grafo *grafo, int origem, int destino) {
     free(visitados);
     free(distancias);
     return -1; // Indica que não há caminho entre origem e destino
+}
+
+// Função de Dijkstra utilizando vetor
+void dijkstraVetor(Grafo *grafo, int origem) {
+    int numVertices = grafo->numVertices;
+    double *distancia = (double *)malloc(numVertices * sizeof(double));
+    int *visitados = (int *)calloc(numVertices, sizeof(int));
+    int *pais = (int *)malloc(numVertices * sizeof(int));
+
+    
+    if (!distancia || !visitados || !pais) { 
+        printf("Erro ao alocar memória para arrays de Dijkstra.\n");
+        return;
+    }
+
+    // Inicializa o array de distâncias com infinito e os pais com -1
+    for (int i = 0; i < numVertices; i++) {
+        distancia[i] = DBL_MAX; // DBL_MAX representa o infinito para distâncias
+        pais[i] = -1;
+    }
+
+    
+    distancia[origem] = 0.0; // A distância para o próprio vértice de origem é zero
+
+    // Algoritmo de Dijkstra
+    for (int i = 0; i < numVertices - 1; i++) {
+        // Encontrar o vértice com a menor distância que ainda não foi visitado
+        double minDistancia = DBL_MAX;
+        int u = -1;
+
+        for (int v = 0; v < numVertices; v++) {
+            if (!visitados[v] && distancia[v] < minDistancia) {
+                minDistancia = distancia[v];
+                u = v;
+            }
+        }
+
+        // Marca o vértice como visitado
+        if (u != -1) {
+            visitados[u] = 1;
+
+            // Atualizar as distâncias dos vértices adjacentes
+            if (grafo->tipo == MATRIZ_ADJACENCIA) {
+                for (int v = 0; v < numVertices; v++) {
+                    if (grafo->grafoMatriz->matriz[u][v] > 0 && !visitados[v]) {
+                        double peso = grafo->grafoMatriz->matriz[u][v];
+                        if (distancia[u] + peso < distancia[v]) {
+                            distancia[v] = distancia[u] + peso;
+                            pais[v] = u;
+                        }
+                    }
+                }
+            } else if (grafo->tipo == LISTA_ADJACENCIA) {
+                No *adjacente = grafo->grafoLista->listaAdj[u];
+                while (adjacente != NULL) {
+                    int v = adjacente->vertice;
+                    double peso = adjacente->peso;
+                    if (!visitados[v] && distancia[u] + peso < distancia[v]) {
+                        distancia[v] = distancia[u] + peso;
+                        pais[v] = u;
+                    }
+                    adjacente = adjacente->prox;
+                }
+            }
+        }
+    }
+
+    // Exibir as distâncias mínimas e os caminhos
+    printf("Distâncias mínimas a partir do vértice %d:\n", origem + 1);
+    for (int i = 0; i < numVertices; i++) {
+        if (distancia[i] == DBL_MAX) {
+            printf("Vértice %d: Inacessível\n", i + 1);
+        } else {
+            printf("Vértice %d: %.2f (Caminho: ", i + 1, distancia[i]);
+            int v = i;
+            while (v != -1) {
+                printf("%d ", v + 1);
+                v = pais[v];
+                if (v != -1) {
+                    printf("<- ");
+                }
+            }
+            printf(")\n");
+        }
+    }
+
+    free(distancia);
+    free(visitados);
+    free(pais);
 }

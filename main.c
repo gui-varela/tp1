@@ -16,6 +16,8 @@ void descobrirComponentesConexas(Grafo *grafo, const char *baseNomeArquivo);
 void calcularDistanciaVerticesInterativo(Grafo *grafo);
 void executarEstudoCasoBFS(Grafo *grafo);
 void executarEstudoCasoDFS(Grafo *grafo);
+void executarDijkstraVetor(Grafo *grafo);
+
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -39,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     int pid = getpid();
     printf("Grafo carregado. Pressione Enter para continuar... (PID: %d)", pid);
-    getchar(); // Espera o usuário pressionar Enter
+    getchar(); 
 
     // Gera o nome base do arquivo de saída
     char *baseNomeArquivo = gerarNomeBaseArquivo(argv[1], argv[2]);
@@ -58,8 +60,9 @@ int main(int argc, char *argv[]) {
         printf("3. Executar DFS\n");
         printf("4. Gerar componentes\n");
         printf("5. Calcular distância\n");
-        printf("6. Estudo de caso 2 (100 BFS)\n");  // Nova opção
-        printf("7. Estudo de caso 3 (100 DFS)\n");  // Nova opção
+        printf("6. Estudo de caso 2 (100 BFS)\n");  
+        printf("7. Estudo de caso 3 (100 DFS)\n");  
+        printf("8. Calcular distâncias e caminhos mínimos (Dijkstra com vetor)\n");
         printf("0. Sair\n");
         printf("Opção: ");
         scanf("%d", &opcao);
@@ -93,6 +96,9 @@ int main(int argc, char *argv[]) {
                 // Estudo de caso 3: 100 DFS
                 executarEstudoCasoDFS(grafo);
                 break;
+            case 8:
+                executarDijkstraVetor(grafo);
+                break;
             case 0:
                 // Sair
                 printf("Encerrando o programa.\n");
@@ -111,7 +117,6 @@ int main(int argc, char *argv[]) {
 }
 
 // Implementações das funções auxiliares
-
 TipoRepresentacao obterTipoRepresentacao(const char *arg) {
     if (strcmp(arg, "matriz") == 0) {
         return MATRIZ_ADJACENCIA;
@@ -430,4 +435,47 @@ void executarEstudoCasoDFS(Grafo *grafo) {
 
     double tempoMedio = tempoTotal / numExecucoes;
     printf("Tempo médio de execução do DFS: %.6f ms\n", tempoMedio);
+}
+
+int possuiPesosNegativos(Grafo *grafo) {
+    if (grafo->tipo == MATRIZ_ADJACENCIA) { // Verificação para a matriz de adjacência
+        for (int i = 0; i < grafo->numVertices; i++) {
+            for (int j = 0; j < grafo->numVertices; j++) {
+                if (grafo->grafoMatriz->matriz[i][j] < 0) {  // Verifica se existe uma aresta com peso negativo (diferente de 0 e negativo)
+                    return 1; // Retorna 1 se tiver peso negativo
+                }
+            }
+        }
+    } else if (grafo->tipo == LISTA_ADJACENCIA) { // Verificação para a lista de adjacência
+        for (int i = 0; i < grafo->numVertices; i++) {
+            No *atual = grafo->grafoLista->listaAdj[i];
+            while (atual != NULL) {
+                if (atual->peso < 0) {  // Verifica se existe uma aresta com peso negativo
+                    return 1; // Retorna 1 se tiver peso negativo
+                } 
+                atual = atual->prox;
+            }
+        }
+    }
+    return 0; // Retorna 0 se não tiver pesos negativos
+}
+
+void executarDijkstraVetor(Grafo *grafo) {
+    if (possuiPesosNegativos(grafo)) {
+        printf("O grafo possui pesos negativos. A biblioteca ainda não implementa caminhos mínimos para grafos com pesos negativos.\n");
+        return;
+    }
+
+    int origem;
+    printf("Digite o número do vértice de origem: ");
+    scanf("%d", &origem);
+    origem -= 1;
+
+    if (origem < 0 || origem >= grafo->numVertices) {
+        printf("Vértice inválido. Por favor, insira um valor entre 1 e %d.\n", grafo->numVertices);
+        return;
+    }
+
+    // Chame a função de Dijkstra utilizando vetor aqui
+    dijkstraVetor(grafo, origem);
 }

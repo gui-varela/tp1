@@ -3,7 +3,7 @@
 
 #include "grafo_matriz.h"
 #include "grafo_lista.h"
-#include <stdio.h>  // Necessário para FILE*
+#include <stdio.h>  
 
 typedef enum { MATRIZ_ADJACENCIA, LISTA_ADJACENCIA } TipoRepresentacao;
 
@@ -66,11 +66,11 @@ void liberarFila(Fila *fila);
 // Funções DFS e BFS
 void dfsComPilhaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *arvoreDFS, int *pais, int *niveis, FILE *arquivoSaida);
 void bfsComFilaArvore(Grafo *grafo, int verticeInicial, int *visitados, Grafo *arvoreBFS, int *pais, int *niveis, FILE *arquivoSaida);
-
-// Nova função para calcular a distância entre dois vértices
 int calcularDistancia(Grafo *grafo, int origem, int destino);
-
-// **Nova função para descobrir as componentes conexas**
 void descobrirComponentes(Grafo *grafo, int *componentes, int *numComponentes);
+
+// trab2
+int possuiPesosNegativos(Grafo *grafo);
+void dijkstraVetor(Grafo *grafo, int origem);
 
 #endif // GRAFO_H
