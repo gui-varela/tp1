@@ -83,7 +83,7 @@ void descobrirComponentes(Grafo *grafo, int *componentes, int *numComponentes);
 
 // trab2
 int possuiPesosNegativos(Grafo *grafo);
-void dijkstraVetor(Grafo *grafo, int origem, int imprimir);
+void dijkstraVetor(Grafo *grafo, int origem, int imprimir, double *distancia, int *pais);
 
 // Protótipos das funções do Heap
 MinHeap* criarMinHeap(int capacidade);
@@ -96,6 +96,7 @@ int estaVazioHeap(MinHeap *minHeap);
 void liberarMinHeap(MinHeap *minHeap);
 
 // Protótipo da função Dijkstra com Heap
-void dijkstraHeap(Grafo *grafo, int origem, int imprimir);
+void dijkstraHeap(Grafo *grafo, int origem, int imprimir, double *distancia, int *pais);
+
 
 #endif // GRAFO_H

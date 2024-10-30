@@ -17,7 +17,7 @@ void descobrirComponentesConexas(Grafo *grafo, const char *baseNomeArquivo);
 void calcularDistanciaVerticesInterativo(Grafo *grafo);
 void executarEstudoCasoBFS(Grafo *grafo);
 void executarEstudoCasoDFS(Grafo *grafo);
-void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo);
+void executarEstudoCasoDijkstra(Grafo *grafo, const char *baseNomeArquivo, int usarHeap);
 void executarEstudoCasoTempoMedioDijkstra(Grafo *grafo, const char *baseNomeArquivo, int usarHeap);
 
 int main(int argc, char *argv[]) {
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
         printf("6. Estudo de caso 2 (100 BFS)\n");  
         printf("7. Estudo de caso 3 (100 DFS)\n");  
         printf("====== Trabalho 2 ======\n");  
-        printf("8. Calcular distâncias e caminhos mínimos (Dijkstra com vetor)\n");
+        printf("8. Calcular distâncias e caminhos mínimos\n");;
         printf("9. Tempo médio Dijkstra (com vetor)\n");
         printf("10. Tempo médio Dijkstra (com heap)\n");
         printf("0. Sair\n");;
@@ -102,14 +102,28 @@ int main(int argc, char *argv[]) {
                 executarEstudoCasoDFS(grafo);
                 break;
             case 8:
-                executarEstudoCasoDijkstraVetor(grafo, baseNomeArquivo);
+                {
+                    int usarHeap;
+                    printf("Escolha a implementação de Dijkstra:\n");
+                    printf("1. Dijkstra com vetor\n");
+                    printf("2. Dijkstra com heap\n");
+                    printf("Opção: ");
+                    scanf("%d", &usarHeap);
+                    if (usarHeap == 1) {
+                        executarEstudoCasoDijkstra(grafo, baseNomeArquivo, 0); // 0 para vetor
+                    } else if (usarHeap == 2) {
+                        executarEstudoCasoDijkstra(grafo, baseNomeArquivo, 1); // 1 para heap
+                    } else {
+                        printf("Opção inválida.\n");
+                    }
+                }
                 break;
             case 9:
                 executarEstudoCasoTempoMedioDijkstra(grafo, baseNomeArquivo, 0); // 0 para vetor
                 break;
             case 10:
                 executarEstudoCasoTempoMedioDijkstra(grafo, baseNomeArquivo, 1); // 1 para heap
-                break;
+            break;
             case 0:
                 printf("Encerrando o programa.\n");
                 break;
@@ -470,14 +484,18 @@ int possuiPesosNegativos(Grafo *grafo) {
     return 0; // Retorna 0 se não tiver pesos negativos
 }
 
-void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) {
+void executarEstudoCasoDijkstra(Grafo *grafo, const char *baseNomeArquivo, int usarHeap) {
     int origem = 9; // Índice 9 corresponde ao vértice 10 (notação 1-based)
     int destinos[] = {19, 29, 39, 49, 59}; // Índices para os vértices 20, 30, 40, 50, 60
     int numDestinos = sizeof(destinos) / sizeof(destinos[0]);
 
-    // Gera o nome do arquivo de saída
+    // Gera o nome do arquivo de saída, diferenciando se é heap ou vetor
     char nomeArquivoSaida[256];
-    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso3_1.txt", baseNomeArquivo);
+    if (usarHeap) {
+        snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso3_1_heap.txt", baseNomeArquivo);
+    } else {
+        snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso3_1_vetor.txt", baseNomeArquivo);
+    }
 
     // Abre o arquivo de saída para escrever os resultados
     FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
@@ -486,71 +504,27 @@ void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) 
         return;
     }
 
-    fprintf(arquivoSaida, "Estudo de Caso 3.1: Distâncias e caminhos mínimos a partir do vértice 10\n\n");
+    fprintf(arquivoSaida, "Estudo de Caso 3.1: Distâncias e caminhos mínimos a partir do vértice 10 (%s)\n\n",
+            usarHeap ? "Heap" : "Vetor");
     fprintf(arquivoSaida, "Destino\tDistância\tCaminho Mínimo\n");
     fprintf(arquivoSaida, "-------\t---------\t--------------\n");
 
-    // Inicializa arrays necessários para o Dijkstra
-    int numVertices = grafo->numVertices;
-    double *distancia = (double *)malloc(numVertices * sizeof(double));
-    int *visitados = (int *)calloc(numVertices, sizeof(int));
-    int *pais = (int *)malloc(numVertices * sizeof(int));
-
-    if (!distancia || !visitados || !pais) {
-        printf("Erro ao alocar memória.\n");
-        free(distancia);
-        free(visitados);
-        free(pais);
+    // Verifica se o grafo possui pesos negativos
+    if (possuiPesosNegativos(grafo)) {
+        fprintf(arquivoSaida, "O algoritmo de Dijkstra não funciona com pesos negativos.\n");
         fclose(arquivoSaida);
         return;
     }
 
-    // Inicializa o array de distâncias com infinito e os pais com -1
-    for (int i = 0; i < numVertices; i++) {
-        distancia[i] = DBL_MAX;
-        pais[i] = -1;
-    }
+    // Executa o Dijkstra e obtém as distâncias e pais
+    int numVertices = grafo->numVertices;
+    double *distancia = (double *)malloc(numVertices * sizeof(double));
+    int *pais = (int *)malloc(numVertices * sizeof(int));
 
-    distancia[origem] = 0.0;
-
-    // Implementação do algoritmo de Dijkstra
-    for (int i = 0; i < numVertices - 1; i++) {
-        double minDistancia = DBL_MAX;
-        int u = -1;
-
-        for (int v = 0; v < numVertices; v++) {
-            if (!visitados[v] && distancia[v] < minDistancia) {
-                minDistancia = distancia[v];
-                u = v;
-            }
-        }
-
-        if (u == -1) break; // Todos os vértices acessíveis foram processados
-
-        visitados[u] = 1;
-
-        if (grafo->tipo == MATRIZ_ADJACENCIA) {
-            for (int v = 0; v < numVertices; v++) {
-                if (grafo->grafoMatriz->matriz[u][v] > 0 && !visitados[v]) {
-                    double peso = grafo->grafoMatriz->matriz[u][v];
-                    if (distancia[u] + peso < distancia[v]) {
-                        distancia[v] = distancia[u] + peso;
-                        pais[v] = u;
-                    }
-                }
-            }
-        } else if (grafo->tipo == LISTA_ADJACENCIA) {
-            No *adjacente = grafo->grafoLista->listaAdj[u];
-            while (adjacente != NULL) {
-                int v = adjacente->vertice;
-                double peso = adjacente->peso;
-                if (!visitados[v] && distancia[u] + peso < distancia[v]) {
-                    distancia[v] = distancia[u] + peso;
-                    pais[v] = u;
-                }
-                adjacente = adjacente->prox;
-            }
-        }
+    if (usarHeap) {
+        dijkstraHeap(grafo, origem, 0, distancia, pais);
+    } else {
+        dijkstraVetor(grafo, origem, 0, distancia, pais);
     }
 
     // Para cada destino, imprimir a distância e o caminho mínimo
@@ -583,12 +557,12 @@ void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) 
     }
 
     free(distancia);
-    free(visitados);
     free(pais);
     fclose(arquivoSaida);
 
     printf("Resultado do estudo de caso 3.1 escrito no arquivo %s.\n", nomeArquivoSaida);
 }
+
 
 void executarEstudoCasoTempoMedioDijkstra(Grafo *grafo, const char *baseNomeArquivo, int usarHeap) {
     int numVertices = grafo->numVertices;
@@ -614,6 +588,17 @@ void executarEstudoCasoTempoMedioDijkstra(Grafo *grafo, const char *baseNomeArqu
 
     srand(time(NULL));
 
+    // Allocate distance and parent arrays once
+    double *distancia = (double *)malloc(numVertices * sizeof(double));
+    int *pais = (int *)malloc(numVertices * sizeof(int));
+    if (!distancia || !pais) {
+        printf("Erro ao alocar memória.\n");
+        fclose(arquivoSaida);
+        free(distancia);
+        free(pais);
+        return;
+    }
+
     for (int i = 0; i < numExecucoes; i++) {
         int verticeInicial = rand() % numVertices;
 
@@ -621,15 +606,17 @@ void executarEstudoCasoTempoMedioDijkstra(Grafo *grafo, const char *baseNomeArqu
         if (possuiPesosNegativos(grafo)) {
             fprintf(arquivoSaida, "O algoritmo de Dijkstra não funciona com pesos negativos.\n");
             fclose(arquivoSaida);
+            free(distancia);
+            free(pais);
             return;
         }
 
         clock_t inicio = clock();
 
         if (usarHeap) {
-            dijkstraHeap(grafo, verticeInicial, 0); // 0 para não imprimir
+            dijkstraHeap(grafo, verticeInicial, 0, distancia, pais);
         } else {
-            dijkstraVetor(grafo, verticeInicial, 0); // 0 para não imprimir
+            dijkstraVetor(grafo, verticeInicial, 0, distancia, pais);
         }
 
         clock_t fim = clock();
@@ -646,27 +633,13 @@ void executarEstudoCasoTempoMedioDijkstra(Grafo *grafo, const char *baseNomeArqu
 
     fclose(arquivoSaida);
     printf("Estudo de caso 2 completo. Resultados salvos no arquivo %s.\n", nomeArquivoSaida);
-    printf("Tempo médio: %f.\n\n", tempoMedio);
+    printf("Tempo médio: %.6f ms.\n\n", tempoMedio);
+
+    // Free allocated memory
+    free(distancia);
+    free(pais);
 }
 
-// TODO: Não está sendo usada mas pode ser adicionada nas opções para testar com heap e não somente vetor
-void executarEstudoCasoDijkstraHeap(Grafo *grafo, const char *baseNomeArquivo) {
-    int origem;
-    printf("Digite o vértice de origem para o Dijkstra com Heap: ");
-    scanf("%d", &origem);
-    if (origem < 1 || origem > grafo->numVertices) {
-        printf("Vértice inválido.\n");
-        return;
-    }
-    origem--; // Ajuste para índice baseado em zero
 
-    // Verifica se o grafo possui pesos negativos
-    if (possuiPesosNegativos(grafo)) {
-        printf("O algoritmo de Dijkstra não funciona com pesos negativos.\n");
-        return;
-    }
-
-    dijkstraHeap(grafo, origem, 1);
-}
 
 

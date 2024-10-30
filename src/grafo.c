@@ -451,26 +451,22 @@ int calcularDistancia(Grafo *grafo, int origem, int destino) {
 }
 
 // Função de Dijkstra utilizando vetor
-void dijkstraVetor(Grafo *grafo, int origem, int imprimir) {
+void dijkstraVetor(Grafo *grafo, int origem, int imprimir, double *distancia, int *pais) {
     int numVertices = grafo->numVertices;
-    double *distancia = (double *)malloc(numVertices * sizeof(double));
     int *visitados = (int *)calloc(numVertices, sizeof(int));
-    int *pais = (int *)malloc(numVertices * sizeof(int));
 
-    
-    if (!distancia || !visitados || !pais) { 
+    if (!distancia || !visitados || !pais) {
         printf("Erro ao alocar memória para arrays de Dijkstra.\n");
         return;
     }
 
     // Inicializa o array de distâncias com infinito e os pais com -1
     for (int i = 0; i < numVertices; i++) {
-        distancia[i] = DBL_MAX; // DBL_MAX representa o infinito para distâncias
+        distancia[i] = DBL_MAX;
         pais[i] = -1;
     }
 
-    
-    distancia[origem] = 0.0; // A distância para o próprio vértice de origem é zero
+    distancia[origem] = 0.0;
 
     // Algoritmo de Dijkstra
     for (int i = 0; i < numVertices - 1; i++) {
@@ -515,7 +511,7 @@ void dijkstraVetor(Grafo *grafo, int origem, int imprimir) {
         }
     }
 
-    // Exibir as distâncias mínimas e os caminhos somente se 'imprimir' for verdadeiro
+    // Exibir as distâncias mínimas e os caminhos se 'imprimir' for verdadeiro
     if (imprimir) {
         printf("Distâncias mínimas a partir do vértice %d:\n", origem + 1);
         for (int i = 0; i < numVertices; i++) {
@@ -523,12 +519,19 @@ void dijkstraVetor(Grafo *grafo, int origem, int imprimir) {
                 printf("Vértice %d: Inacessível\n", i + 1);
             } else {
                 printf("Vértice %d: %.2f (Caminho: ", i + 1, distancia[i]);
+                // Reconstruir o caminho
                 int v = i;
+                int caminho[numVertices];
+                int tamanhoCaminho = 0;
                 while (v != -1) {
-                    printf("%d ", v + 1);
+                    caminho[tamanhoCaminho++] = v;
                     v = pais[v];
-                    if (v != -1) {
-                        printf("<- ");
+                }
+                // Imprimir o caminho na ordem correta
+                for (int j = tamanhoCaminho - 1; j >= 0; j--) {
+                    printf("%d", caminho[j] + 1);
+                    if (j > 0) {
+                        printf(" -> ");
                     }
                 }
                 printf(")\n");
@@ -536,9 +539,7 @@ void dijkstraVetor(Grafo *grafo, int origem, int imprimir) {
         }
     }
 
-    free(distancia);
     free(visitados);
-    free(pais);
 }
 
 MinHeap* criarMinHeap(int capacidade) {
@@ -644,10 +645,8 @@ void liberarMinHeap(MinHeap *minHeap) {
     free(minHeap);
 }
 
-void dijkstraHeap(Grafo *grafo, int origem, int imprimir) {
+void dijkstraHeap(Grafo *grafo, int origem, int imprimir, double *distancia, int *pais) {
     int numVertices = grafo->numVertices;
-    double *distancia = (double *)malloc(numVertices * sizeof(double));
-    int *pais = (int *)malloc(numVertices * sizeof(int));
 
     // Cria o Min Heap e inicializa
     MinHeap* minHeap = criarMinHeap(numVertices);
@@ -703,7 +702,7 @@ void dijkstraHeap(Grafo *grafo, int origem, int imprimir) {
         }
     }
 
-    // Exibir as distâncias mínimas e os caminhos somente se 'imprimir' for verdadeiro
+    // Exibir as distâncias mínimas e os caminhos se 'imprimir' for verdadeiro
     if (imprimir) {
         printf("Distâncias mínimas a partir do vértice %d:\n", origem + 1);
         for (int i = 0; i < numVertices; i++) {
@@ -731,8 +730,5 @@ void dijkstraHeap(Grafo *grafo, int origem, int imprimir) {
         }
     }
 
-    // Liberar memória
     liberarMinHeap(minHeap);
-    free(distancia);
-    free(pais);
 }
