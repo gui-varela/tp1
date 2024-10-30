@@ -1,8 +1,7 @@
 #include "../include/grafo.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <float.h> // Para o valor de infinito DBL_MAX
-
+#include <float.h>
 
 Grafo *criarGrafo(int numVertices, TipoRepresentacao tipo) {
     Grafo *grafo = (Grafo *)malloc(sizeof(Grafo));
@@ -452,7 +451,7 @@ int calcularDistancia(Grafo *grafo, int origem, int destino) {
 }
 
 // Função de Dijkstra utilizando vetor
-void dijkstraVetor(Grafo *grafo, int origem) {
+void dijkstraVetor(Grafo *grafo, int origem, int imprimir) {
     int numVertices = grafo->numVertices;
     double *distancia = (double *)malloc(numVertices * sizeof(double));
     int *visitados = (int *)calloc(numVertices, sizeof(int));
@@ -516,26 +515,224 @@ void dijkstraVetor(Grafo *grafo, int origem) {
         }
     }
 
-    // Exibir as distâncias mínimas e os caminhos
-    printf("Distâncias mínimas a partir do vértice %d:\n", origem + 1);
-    for (int i = 0; i < numVertices; i++) {
-        if (distancia[i] == DBL_MAX) {
-            printf("Vértice %d: Inacessível\n", i + 1);
-        } else {
-            printf("Vértice %d: %.2f (Caminho: ", i + 1, distancia[i]);
-            int v = i;
-            while (v != -1) {
-                printf("%d ", v + 1);
-                v = pais[v];
-                if (v != -1) {
-                    printf("<- ");
+    // Exibir as distâncias mínimas e os caminhos somente se 'imprimir' for verdadeiro
+    if (imprimir) {
+        printf("Distâncias mínimas a partir do vértice %d:\n", origem + 1);
+        for (int i = 0; i < numVertices; i++) {
+            if (distancia[i] == DBL_MAX) {
+                printf("Vértice %d: Inacessível\n", i + 1);
+            } else {
+                printf("Vértice %d: %.2f (Caminho: ", i + 1, distancia[i]);
+                int v = i;
+                while (v != -1) {
+                    printf("%d ", v + 1);
+                    v = pais[v];
+                    if (v != -1) {
+                        printf("<- ");
+                    }
                 }
+                printf(")\n");
             }
-            printf(")\n");
         }
     }
 
     free(distancia);
     free(visitados);
+    free(pais);
+}
+
+MinHeap* criarMinHeap(int capacidade) {
+    MinHeap* minHeap = (MinHeap*) malloc(sizeof(MinHeap));
+    minHeap->capacidade = capacidade;
+    minHeap->tamanho = 0;
+    minHeap->posicoes = (int*) malloc(capacidade * sizeof(int));
+    minHeap->array = (HeapNode**) malloc(capacidade * sizeof(HeapNode*));
+    return minHeap;
+}
+
+void trocarHeapNode(HeapNode** a, HeapNode** b) {
+    HeapNode* temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void minHeapify(MinHeap* minHeap, int idx) {
+    int menor = idx;
+    int esquerda = 2 * idx + 1;
+    int direita = 2 * idx + 2;
+
+    if (esquerda < minHeap->tamanho &&
+        minHeap->array[esquerda]->distancia < minHeap->array[menor]->distancia)
+        menor = esquerda;
+
+    if (direita < minHeap->tamanho &&
+        minHeap->array[direita]->distancia < minHeap->array[menor]->distancia)
+        menor = direita;
+
+    if (menor != idx) {
+        // Atualiza as posições
+        minHeap->posicoes[minHeap->array[menor]->vertice] = idx;
+        minHeap->posicoes[minHeap->array[idx]->vertice] = menor;
+
+        // Troca os nós
+        trocarHeapNode(&minHeap->array[menor], &minHeap->array[idx]);
+
+        minHeapify(minHeap, menor);
+    }
+}
+
+HeapNode* extrairMinimo(MinHeap* minHeap) {
+    if (minHeap->tamanho == 0)
+        return NULL;
+
+    // Armazena o nó raiz
+    HeapNode* raiz = minHeap->array[0];
+
+    // Substitui a raiz pelo último nó
+    HeapNode* ultimoNode = minHeap->array[minHeap->tamanho - 1];
+    minHeap->array[0] = ultimoNode;
+
+    // Atualiza a posição
+    minHeap->posicoes[raiz->vertice] = minHeap->tamanho - 1;
+    minHeap->posicoes[ultimoNode->vertice] = 0;
+
+    minHeap->array[minHeap->tamanho - 1] = NULL;
+
+    // Reduz o tamanho do heap e heapify na raiz
+    minHeap->tamanho--;
+    minHeapify(minHeap, 0);
+
+    return raiz;
+}
+
+void diminuirChave(MinHeap* minHeap, int vertice, double distancia) {
+    int i = minHeap->posicoes[vertice];
+    minHeap->array[i]->distancia = distancia;
+
+    // Move o nó para cima enquanto a propriedade do heap não for restabelecida
+    while (i && minHeap->array[i]->distancia < minHeap->array[(i - 1) / 2]->distancia) {
+        // Atualiza as posições
+        minHeap->posicoes[minHeap->array[i]->vertice] = (i - 1) / 2;
+        minHeap->posicoes[minHeap->array[(i - 1) / 2]->vertice] = i;
+
+        // Troca os nós
+        trocarHeapNode(&minHeap->array[i], &minHeap->array[(i - 1) / 2]);
+
+        i = (i - 1) / 2;
+    }
+}
+
+int estaVazioHeap(MinHeap *minHeap) {
+    return minHeap->tamanho == 0;
+}
+
+int estaNoHeap(MinHeap *minHeap, int vertice) {
+    if (minHeap->posicoes[vertice] < minHeap->tamanho)
+        return 1;
+    return 0;
+}
+
+void liberarMinHeap(MinHeap *minHeap) {
+    for (int i = 0; i < minHeap->capacidade; i++) {
+        if (minHeap->array[i]) {
+            free(minHeap->array[i]);
+            minHeap->array[i] = NULL;
+        }
+    }
+    free(minHeap->array);
+    free(minHeap->posicoes);
+    free(minHeap);
+}
+
+void dijkstraHeap(Grafo *grafo, int origem, int imprimir) {
+    int numVertices = grafo->numVertices;
+    double *distancia = (double *)malloc(numVertices * sizeof(double));
+    int *pais = (int *)malloc(numVertices * sizeof(int));
+
+    // Cria o Min Heap e inicializa
+    MinHeap* minHeap = criarMinHeap(numVertices);
+
+    for (int v = 0; v < numVertices; v++) {
+        distancia[v] = DBL_MAX;
+        pais[v] = -1;
+        minHeap->array[v] = (HeapNode*) malloc(sizeof(HeapNode));
+        minHeap->array[v]->vertice = v;
+        minHeap->array[v]->distancia = distancia[v];
+        minHeap->posicoes[v] = v;
+    }
+
+    // Define a distância do vértice de origem como zero e atualiza no heap
+    distancia[origem] = 0.0;
+    diminuirChave(minHeap, origem, distancia[origem]);
+
+    minHeap->tamanho = numVertices;
+
+    // Enquanto o heap não estiver vazio
+    while (!estaVazioHeap(minHeap)) {
+        // Extrai o vértice com a menor distância
+        HeapNode* minNode = extrairMinimo(minHeap);
+        int u = minNode->vertice;
+        free(minNode); // Libera o nó extraído
+
+        // Para cada vizinho de u
+        if (grafo->tipo == MATRIZ_ADJACENCIA) {
+            for (int v = 0; v < numVertices; v++) {
+                double peso = grafo->grafoMatriz->matriz[u][v];
+                if (peso > 0 && estaNoHeap(minHeap, v)) {
+                    if (distancia[u] + peso < distancia[v]) {
+                        distancia[v] = distancia[u] + peso;
+                        pais[v] = u;
+                        diminuirChave(minHeap, v, distancia[v]);
+                    }
+                }
+            }
+        } else if (grafo->tipo == LISTA_ADJACENCIA) {
+            No *adjacente = grafo->grafoLista->listaAdj[u];
+            while (adjacente != NULL) {
+                int v = adjacente->vertice;
+                double peso = adjacente->peso;
+                if (estaNoHeap(minHeap, v)) {
+                    if (distancia[u] + peso < distancia[v]) {
+                        distancia[v] = distancia[u] + peso;
+                        pais[v] = u;
+                        diminuirChave(minHeap, v, distancia[v]);
+                    }
+                }
+                adjacente = adjacente->prox;
+            }
+        }
+    }
+
+    // Exibir as distâncias mínimas e os caminhos somente se 'imprimir' for verdadeiro
+    if (imprimir) {
+        printf("Distâncias mínimas a partir do vértice %d:\n", origem + 1);
+        for (int i = 0; i < numVertices; i++) {
+            if (distancia[i] == DBL_MAX) {
+                printf("Vértice %d: Inacessível\n", i + 1);
+            } else {
+                printf("Vértice %d: %.2f (Caminho: ", i + 1, distancia[i]);
+                // Reconstruir o caminho
+                int v = i;
+                int caminho[numVertices];
+                int tamanhoCaminho = 0;
+                while (v != -1) {
+                    caminho[tamanhoCaminho++] = v;
+                    v = pais[v];
+                }
+                // Imprimir o caminho na ordem correta
+                for (int j = tamanhoCaminho - 1; j >= 0; j--) {
+                    printf("%d", caminho[j] + 1);
+                    if (j > 0) {
+                        printf(" -> ");
+                    }
+                }
+                printf(")\n");
+            }
+        }
+    }
+
+    // Liberar memória
+    liberarMinHeap(minHeap);
+    free(distancia);
     free(pais);
 }

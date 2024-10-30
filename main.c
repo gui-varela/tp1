@@ -18,10 +18,7 @@ void calcularDistanciaVerticesInterativo(Grafo *grafo);
 void executarEstudoCasoBFS(Grafo *grafo);
 void executarEstudoCasoDFS(Grafo *grafo);
 void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo);
-void executarEstudoCasoTempoMedioDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo);
-
-
-
+void executarEstudoCasoTempoMedioDijkstra(Grafo *grafo, const char *baseNomeArquivo, int usarHeap);
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -70,7 +67,8 @@ int main(int argc, char *argv[]) {
         printf("====== Trabalho 2 ======\n");  
         printf("8. Calcular distâncias e caminhos mínimos (Dijkstra com vetor)\n");
         printf("9. Tempo médio Dijkstra (com vetor)\n");
-        printf("0. Sair\n");
+        printf("10. Tempo médio Dijkstra (com heap)\n");
+        printf("0. Sair\n");;
         printf("Opção: ");
         scanf("%d", &opcao);
 
@@ -107,7 +105,10 @@ int main(int argc, char *argv[]) {
                 executarEstudoCasoDijkstraVetor(grafo, baseNomeArquivo);
                 break;
             case 9:
-                executarEstudoCasoTempoMedioDijkstraVetor(grafo, baseNomeArquivo);
+                executarEstudoCasoTempoMedioDijkstra(grafo, baseNomeArquivo, 0); // 0 para vetor
+                break;
+            case 10:
+                executarEstudoCasoTempoMedioDijkstra(grafo, baseNomeArquivo, 1); // 1 para heap
                 break;
             case 0:
                 printf("Encerrando o programa.\n");
@@ -589,13 +590,17 @@ void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) 
     printf("Resultado do estudo de caso 3.1 escrito no arquivo %s.\n", nomeArquivoSaida);
 }
 
-void executarEstudoCasoTempoMedioDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) {
+void executarEstudoCasoTempoMedioDijkstra(Grafo *grafo, const char *baseNomeArquivo, int usarHeap) {
     int numVertices = grafo->numVertices;
     int numExecucoes = 100;
-    double tempoTotalVetor = 0.0;
+    double tempoTotal = 0.0;
 
     char nomeArquivoSaida[256];
-    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso2.txt", baseNomeArquivo);
+    if (usarHeap) {
+        snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso2_heap.txt", baseNomeArquivo);
+    } else {
+        snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso2_vetor.txt", baseNomeArquivo);
+    }
 
     FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
     if (!arquivoSaida) {
@@ -603,31 +608,65 @@ void executarEstudoCasoTempoMedioDijkstraVetor(Grafo *grafo, const char *baseNom
         return;
     }
 
-    fprintf(arquivoSaida, "Estudo de Caso 2: Tempo médio para calcular distâncias mínimas usando Dijkstra\n");
+    fprintf(arquivoSaida, "Estudo de Caso 2: Tempo médio para calcular distâncias mínimas usando Dijkstra (%s)\n",
+            usarHeap ? "Heap" : "Vetor");
     fprintf(arquivoSaida, "Número de vértices aleatórios escolhidos (k): %d\n\n", numExecucoes);
-    
+
     srand(time(NULL));
 
     for (int i = 0; i < numExecucoes; i++) {
         int verticeInicial = rand() % numVertices;
+
+        // Verifica se o grafo possui pesos negativos
+        if (possuiPesosNegativos(grafo)) {
+            fprintf(arquivoSaida, "O algoritmo de Dijkstra não funciona com pesos negativos.\n");
+            fclose(arquivoSaida);
+            return;
+        }
+
         clock_t inicio = clock();
-        dijkstraVetor(grafo, verticeInicial); 
+
+        if (usarHeap) {
+            dijkstraHeap(grafo, verticeInicial, 0); // 0 para não imprimir
+        } else {
+            dijkstraVetor(grafo, verticeInicial, 0); // 0 para não imprimir
+        }
+
         clock_t fim = clock();
         double tempoExecucao = ((double)(fim - inicio) / CLOCKS_PER_SEC) * 1000;
-        tempoTotalVetor += tempoExecucao;
+        tempoTotal += tempoExecucao;
     }
 
-    double tempoMedioVetor = tempoTotalVetor / numExecucoes;
+    double tempoMedio = tempoTotal / numExecucoes;
 
     fprintf(arquivoSaida, "Resultados:\n");
     fprintf(arquivoSaida, "Implementação\tTempo Médio (ms)\n");
     fprintf(arquivoSaida, "--------------\t----------------\n");
-    fprintf(arquivoSaida, "Dijkstra com vetor\t%.6f\n", tempoMedioVetor);
-    fprintf(arquivoSaida, "Dijkstra com heap (pendente)\n");
+    fprintf(arquivoSaida, "Dijkstra com %s\t%.6f\n", usarHeap ? "heap" : "vetor", tempoMedio);
 
     fclose(arquivoSaida);
     printf("Estudo de caso 2 completo. Resultados salvos no arquivo %s.\n", nomeArquivoSaida);
+    printf("Tempo médio: %f.\n\n", tempoMedio);
 }
 
+// TODO: Não está sendo usada mas pode ser adicionada nas opções para testar com heap e não somente vetor
+void executarEstudoCasoDijkstraHeap(Grafo *grafo, const char *baseNomeArquivo) {
+    int origem;
+    printf("Digite o vértice de origem para o Dijkstra com Heap: ");
+    scanf("%d", &origem);
+    if (origem < 1 || origem > grafo->numVertices) {
+        printf("Vértice inválido.\n");
+        return;
+    }
+    origem--; // Ajuste para índice baseado em zero
+
+    // Verifica se o grafo possui pesos negativos
+    if (possuiPesosNegativos(grafo)) {
+        printf("O algoritmo de Dijkstra não funciona com pesos negativos.\n");
+        return;
+    }
+
+    dijkstraHeap(grafo, origem, 1);
+}
 
 
