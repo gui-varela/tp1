@@ -623,7 +623,7 @@ void executarEstudoCasoTempoMedioDijkstraVetor(Grafo *grafo, const char *baseNom
     fprintf(arquivoSaida, "Implementação\tTempo Médio (ms)\n");
     fprintf(arquivoSaida, "--------------\t----------------\n");
     fprintf(arquivoSaida, "Dijkstra com vetor\t%.6f\n", tempoMedioVetor);
-    fprintf(arquivoSaida, "Dijkstra com heap\t%.6f (pendente)\n");
+    fprintf(arquivoSaida, "Dijkstra com heap (pendente)\n");
 
     fclose(arquivoSaida);
     printf("Estudo de caso 2 completo. Resultados salvos no arquivo %s.\n", nomeArquivoSaida);
