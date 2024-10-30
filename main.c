@@ -18,6 +18,9 @@ void calcularDistanciaVerticesInterativo(Grafo *grafo);
 void executarEstudoCasoBFS(Grafo *grafo);
 void executarEstudoCasoDFS(Grafo *grafo);
 void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo);
+void executarEstudoCasoTempoMedioDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo);
+
+
 
 
 int main(int argc, char *argv[]) {
@@ -56,6 +59,7 @@ int main(int argc, char *argv[]) {
     int opcao;
     do {
         printf("\nSelecione uma opção:\n");
+        printf("====== Trabalho 1 ======\n");  
         printf("1. Obter informações do grafo\n");
         printf("2. Executar BFS\n");
         printf("3. Executar DFS\n");
@@ -63,7 +67,9 @@ int main(int argc, char *argv[]) {
         printf("5. Calcular distância\n");
         printf("6. Estudo de caso 2 (100 BFS)\n");  
         printf("7. Estudo de caso 3 (100 DFS)\n");  
+        printf("====== Trabalho 2 ======\n");  
         printf("8. Calcular distâncias e caminhos mínimos (Dijkstra com vetor)\n");
+        printf("9. Tempo médio Dijkstra (com vetor)\n");
         printf("0. Sair\n");
         printf("Opção: ");
         scanf("%d", &opcao);
@@ -99,6 +105,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 8:
                 executarEstudoCasoDijkstraVetor(grafo, baseNomeArquivo);
+                break;
+            case 9:
+                executarEstudoCasoTempoMedioDijkstraVetor(grafo, baseNomeArquivo);
                 break;
             case 0:
                 printf("Encerrando o programa.\n");
@@ -579,3 +588,46 @@ void executarEstudoCasoDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) 
 
     printf("Resultado do estudo de caso 3.1 escrito no arquivo %s.\n", nomeArquivoSaida);
 }
+
+void executarEstudoCasoTempoMedioDijkstraVetor(Grafo *grafo, const char *baseNomeArquivo) {
+    int numVertices = grafo->numVertices;
+    int numExecucoes = 100;
+    double tempoTotalVetor = 0.0;
+
+    char nomeArquivoSaida[256];
+    snprintf(nomeArquivoSaida, sizeof(nomeArquivoSaida), "%s-estudoCaso2.txt", baseNomeArquivo);
+
+    FILE *arquivoSaida = fopen(nomeArquivoSaida, "w");
+    if (!arquivoSaida) {
+        printf("Erro ao criar o arquivo de resultado %s.\n", nomeArquivoSaida);
+        return;
+    }
+
+    fprintf(arquivoSaida, "Estudo de Caso 2: Tempo médio para calcular distâncias mínimas usando Dijkstra\n");
+    fprintf(arquivoSaida, "Número de vértices aleatórios escolhidos (k): %d\n\n", numExecucoes);
+    
+    srand(time(NULL));
+
+    for (int i = 0; i < numExecucoes; i++) {
+        int verticeInicial = rand() % numVertices;
+        clock_t inicio = clock();
+        dijkstraVetor(grafo, verticeInicial); 
+        clock_t fim = clock();
+        double tempoExecucao = ((double)(fim - inicio) / CLOCKS_PER_SEC) * 1000;
+        tempoTotalVetor += tempoExecucao;
+    }
+
+    double tempoMedioVetor = tempoTotalVetor / numExecucoes;
+
+    fprintf(arquivoSaida, "Resultados:\n");
+    fprintf(arquivoSaida, "Implementação\tTempo Médio (ms)\n");
+    fprintf(arquivoSaida, "--------------\t----------------\n");
+    fprintf(arquivoSaida, "Dijkstra com vetor\t%.6f\n", tempoMedioVetor);
+    fprintf(arquivoSaida, "Dijkstra com heap\t%.6f (pendente)\n");
+
+    fclose(arquivoSaida);
+    printf("Estudo de caso 2 completo. Resultados salvos no arquivo %s.\n", nomeArquivoSaida);
+}
+
+
+
